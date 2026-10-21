@@ -73,7 +73,7 @@ def templates_dir(ver: str) -> Path | None:
 def scaffold(project: Path, title: str, theme: str, seed: int, hero: str) -> dict:
     """Godot project at the game root, reusing (or first generating) the web build's assets and level."""
     web_res = web.scaffold(project, title=title, theme=theme, seed=seed, hero=hero)
-    cfg = json.loads(Path(web_res["config"]).read_text())
+    cfg = json.loads(Path(web_res["config"]).read_text(encoding="utf-8"))
     th = web.THEMES[theme]
 
     def res(kind: str, name: str, suffix: str) -> str:
@@ -245,7 +245,7 @@ def playtest(binary: str, project: Path, out_dir: Path, seconds: float = 120.0, 
     if not report_path.exists():
         return {"verdict": "BROKEN", "error": "the bot did not finish (crash or script error before the end)",
                 "exit_code": code, "errors": [i for i in issues if i["level"] == "error"][:30], "log_tail": log[-2000:]}
-    bot = json.loads(report_path.read_text())
+    bot = json.loads(report_path.read_text(encoding="utf-8"))
     events = bot.get("events", [])
     counts: dict[str, int] = {}
     for e in events:

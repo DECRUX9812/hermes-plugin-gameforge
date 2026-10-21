@@ -357,7 +357,7 @@ def scaffold(project: Path, title: str = "Hermes Quest", theme: str = "forest", 
     assets["music"] = copy(music) if music else ""
 
     cfg_path = web / "game.json"
-    old = json.loads(cfg_path.read_text()) if cfg_path.exists() and not regenerate else {}
+    old = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() and not regenerate else {}
     cfg = {
         "title": title, "subtitle": subtitle or GOALS[genre], "theme": theme, "genre": genre, "seed": seed,
         "music_volume": 0.35,
@@ -373,7 +373,7 @@ def scaffold(project: Path, title: str = "Hermes Quest", theme: str = "forest", 
     cfg_path.write_text(json.dumps(cfg, indent=1), encoding="utf-8")
     game_js = genre_js.read_text(encoding="utf-8") + "\n\n" + SHARED_JS.read_text(encoding="utf-8")
     (web / "game.js").write_text(game_js, encoding="utf-8")
-    (web / "index.html").write_text(INDEX_HTML.read_text().replace("{{TITLE}}", title), encoding="utf-8")
+    (web / "index.html").write_text(INDEX_HTML.read_text(encoding="utf-8").replace("{{TITLE}}", title), encoding="utf-8")
     proj.set_meta(project, "engines", {**proj.load(project).get("engines", {}), "web": "web/index.html"})
     return {"web_dir": web, "entry": web / "index.html", "config": cfg_path, "theme": theme, "genre": genre,
             "map_size": [len(cfg["map"][0]), len(cfg["map"])],
