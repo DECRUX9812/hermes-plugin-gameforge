@@ -52,6 +52,22 @@ GameForge template) get richer signals. For Godot, a bot scene drives the input 
 `--fixed-fps 60`, so **10 minutes of play run in about 15 seconds**, and it can render real frames
 through Xvfb.
 
+### What evidence is saved when a build breaks
+
+When a game throws an exception or enters an error screen, GameForge doesn't just log an exit code — it captures full diagnostic evidence:
+
+1. **Wire-level CDP exception hooks:** Listens to `Runtime.exceptionThrown` and `Runtime.consoleAPICalled` to record the exact exception name, source URL, line/column number, and multiline stack trace.
+2. **Instant failure frame:** Grabs an immediate viewport snapshot at the exact moment of failure (`shots/01_error.jpg`), so you see exactly what was rendered when it broke.
+3. **Structured artifact bundle** written to `<project>/playtest/<target>_<timestamp>/`:
+   - `report.html` — interactive visual report with embedded failure frames, metrics, and moment timeline.
+   - `report.json` — machine-readable test ledger: issues ranked by severity (`critical`, `major`, `minor`, `design`), p50/p95/min FPS, and event counters.
+   - `report.md` — clean summary suitable for PR comments or CI logs.
+   - `shots/` — high-res JPEG captures of boot, crashes, stuck spots, and checkpoints.
+   - `moments.jpg` — chronological contact sheet of the run.
+   - `timeline.png` — novelty and frame-rate progression chart leading up to the failure.
+   - `heatmap.png` — 2D spatial coverage map showing where the player moved before failing.
+4. **Verdict Gate:** Any critical error sets `verdict: BROKEN`. Stalls or repeated stuck spots set `verdict: ROUGH`. Clean playthroughs score `PLAYABLE` or `SOLID`.
+
 ## One design, every engine
 
 `forge_engine engine=web action=scaffold` generates every asset and writes `web/game.json`: the
