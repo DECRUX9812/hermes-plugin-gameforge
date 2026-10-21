@@ -217,7 +217,7 @@ class WebPlaytester:
                 for k in controls.get("start", ["Enter"]):
                     self._tap(k)
 
-            pos = (state.get("x"), state.get("y")) if "x" in state else None
+            pos = (state.get("x"), state.get("y")) if state.get("x") is not None and state.get("y") is not None else None
             if pos and pos[0] is not None:
                 run.positions.append(pos)
                 cellk = (int(pos[0] // 48), int(pos[1] // 48))
