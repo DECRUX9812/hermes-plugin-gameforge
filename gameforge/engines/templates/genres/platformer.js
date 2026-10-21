@@ -207,8 +207,8 @@ function renderWorld(time) {
     }
     ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
   };
-  hill(0.25, H - 54, 14, "#2f3d63", 24);
-  hill(0.45, H - 34, 10, "#3a4a76", 16);
+  hill(0.25, H - 104, 18, "#2b3859", 24);
+  hill(0.45, H - 74, 13, "#354468", 16);
   ctx.fillStyle = "#ffffff18";
   for (let i = 0; i < 5; i++) {
     const cx = ((i * 173 - cam.x * 0.12 + time / 90) % (W + 90)) - 60;
