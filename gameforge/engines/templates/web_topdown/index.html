@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1a1c2c">
+<title>{{TITLE}}</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #1a1c2c; overflow: hidden; touch-action: none; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  #pad { position: fixed; inset: auto 0 16px 0; display: none; justify-content: space-between; padding: 0 16px; pointer-events: none; }
+  #pad button { pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; border: 2px solid #f4f4f488;
+    background: #33335588; color: #f4f4f4; font: bold 18px monospace; touch-action: none; }
+  #dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 2px; }
+  #dpad button { width: 56px; height: 56px; border-radius: 12px; }
+  @media (pointer: coarse) { #pad { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="game" width="320" height="240" aria-label="{{TITLE}}"></canvas>
+<div id="pad">
+  <div id="dpad">
+    <span></span><button data-key="ArrowUp">▲</button><span></span>
+    <button data-key="ArrowLeft">◀</button><span></span><button data-key="ArrowRight">▶</button>
+    <span></span><button data-key="ArrowDown">▼</button><span></span>
+  </div>
+  <div style="display:flex;gap:12px;align-items:flex-end">
+    <button data-key="Enter">⏎</button><button data-key="Space">✦</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

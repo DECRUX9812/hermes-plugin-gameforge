@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+game/
+gameforge-demo/
+.pytest_cache/

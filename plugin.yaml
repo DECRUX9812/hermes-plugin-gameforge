@@ -1,0 +1,49 @@
+name: gameforge
+version: 1.0.0
+manifest_version: 2
+api_version: 1
+description: >-
+  Game development toolkit: sound effects, music, NPC voices, pixel-art sprites and tilesets,
+  low-poly and AI 3D models; web, Godot, Unity, Blender and Unreal integration; a playtester
+  that actually plays the build; one-click web/mobile export.
+author: Ritesh Patel
+license: MIT
+homepage: https://github.com/DECRUX9812/hermes-plugin-gameforge
+tags: [gamedev, godot, unity, blender, unreal, audio, pixel-art, 3d, playtest]
+provides_tools:
+  - forge_sfx
+  - forge_music
+  - forge_voice
+  - forge_sprite
+  - forge_tileset
+  - forge_model3d
+  - forge_engine
+  - forge_playtest
+  - forge_export
+provides_hooks: []
+config_schema:
+  default_project:
+    type: str
+    default: "game"
+    label: Default project directory
+    description: Where assets and builds go when a tool call gives no project (relative to the working directory).
+  godot_path: {type: str, default: "", label: Godot executable, description: "Leave empty to auto-detect."}
+  unity_path: {type: str, default: "", label: Unity editor executable, description: "Leave empty to auto-detect Unity Hub installs."}
+  blender_path: {type: str, default: "", label: Blender executable, description: "Leave empty to auto-detect."}
+  unreal_path: {type: str, default: "", label: UnrealEditor-Cmd executable, description: "Leave empty to auto-detect."}
+  browser_path: {type: str, default: "", label: Chrome/Chromium for playtests, description: "Leave empty to auto-detect."}
+  fal_key:
+    type: secret
+    env: FAL_KEY
+    label: fal.ai API key
+    description: Optional. Enables AI text/image-to-3D (forge_model3d source=fal).
+  meshy_key:
+    type: secret
+    env: MESHY_API_KEY
+    label: Meshy API key
+    description: Optional. Enables AI text/image-to-3D (forge_model3d source=meshy).
+  elevenlabs_key:
+    type: secret
+    env: ELEVENLABS_API_KEY
+    label: ElevenLabs API key
+    description: Optional. Enables prompt-based sound effects (forge_sfx engine=elevenlabs).
