@@ -369,10 +369,12 @@ def forge_model3d(args: dict) -> str:
                   "animations": args.get("animations") or []}
     elif source in ai3d.PROVIDERS:
         if not ai3d.available()[source]:
-            env = "FAL_KEY" if source == "fal" else "MESHY_API_KEY"
+            env = ai3d.TRIPO_ENV_KEYS[source]
             return fail(f"source '{source}' needs {env} (GameForge plugin settings); source 'procedural' works offline")
+        animate = args.get("animate") or []
         meta = ai3d.generate(source, args.get("prompt"), args.get("image"), glb, args.get("model"),
-                             args.get("params"), int(args.get("timeout", 600)))
+                             args.get("params"), int(args.get("timeout", 600)),
+                             rig=bool(args.get("rig")) or bool(animate), animations=animate)
         scene = render.load_glb(glb)  # textures stay in the .glb; previews use base colours
         recipe = {"tool": "forge_model3d", **meta, "prompt": args.get("prompt"), "image": args.get("image"),
                   "license": f"{source} terms of service"}

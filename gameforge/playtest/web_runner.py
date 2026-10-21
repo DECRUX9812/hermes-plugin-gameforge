@@ -339,7 +339,9 @@ class WebPlaytester:
             for k, (dx, dy) in DIRS.items():
                 seen = sum(run.visited.get((cx + dx * s, cy + dy * s), 0) for s in (1, 2, 3))
                 penalty = 200 if (cx, cy, k) in self.walls else 0  # remembered dead ends (shores, cliffs)
-                penalty += 50 if blocked and k == current else 0
+                # when we are already stuck, the direction we are stuck IN is the worst option:
+                # a small penalty lost every time against a remembered wall, and the bot froze in a corner.
+                penalty += 5000 if blocked and k == current else 0
                 scored.append((seen + penalty + self.rng.random() * 6, k))
             return min(scored)[1]
         options = [m for m in MOVES if not (blocked and m == current)]

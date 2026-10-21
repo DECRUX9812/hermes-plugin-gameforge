@@ -37,6 +37,12 @@ config_schema:
     env: FAL_KEY
     label: fal.ai API key
     description: Optional. Enables AI text/image-to-3D (forge_model3d source=fal).
+  tripo_key:
+    type: secret
+    env: TRIPO_API_KEY
+    label: Tripo API key
+    description: Optional. Enables AI text/image-to-3D plus auto-rigging and preset animations
+      (forge_model3d source=tripo, rig=true, animate=[walk,...]). Uses the Tripo V3 open API.
   meshy_key:
     type: secret
     env: MESHY_API_KEY

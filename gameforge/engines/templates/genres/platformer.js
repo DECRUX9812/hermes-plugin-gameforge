@@ -195,6 +195,28 @@ function renderWorld(time) {
   g.addColorStop(0, cfg.sky_top || "#29366f"); g.addColorStop(1, cfg.sky_bottom || "#1a1c2c");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
+  // A platformer is mostly sky, so give it something to look at: two parallax hill bands and a few
+  // drifting clouds, all derived from the theme's sky colours (no extra assets).
+  const hill = (speed, base, amp, color, step) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += step) {
+      const wx = x + cam.x * speed;
+      ctx.lineTo(x, base + Math.sin(wx / 90) * amp + Math.sin(wx / 37) * amp * 0.4);
+    }
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  };
+  hill(0.25, H - 54, 14, "#2f3d63", 24);
+  hill(0.45, H - 34, 10, "#3a4a76", 16);
+  ctx.fillStyle = "#ffffff18";
+  for (let i = 0; i < 5; i++) {
+    const cx = ((i * 173 - cam.x * 0.12 + time / 90) % (W + 90)) - 60;
+    const cy = 26 + (i % 3) * 17;
+    ctx.fillRect(Math.round(cx), cy, 26, 6);
+    ctx.fillRect(Math.round(cx + 6), cy - 5, 15, 6);
+  }
+
   const x0 = Math.floor(cam.x / T), x1 = x0 + Math.ceil(W / T) + 1;
   const y0 = Math.floor(cam.y / T), y1 = y0 + Math.ceil(H / T) + 1;
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {

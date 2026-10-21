@@ -55,6 +55,10 @@ GOALS = {
     "roguelike": "FIND THE KEYS THEN THE EXIT",
 }
 
+# Interior genres need interior walls. Using the theme's outdoor terrain for a dungeon or an arena
+# drew grass blocks inside a stone room, which reads as a rendering bug rather than a design.
+GENRE_TERRAIN = {"topdown": None, "platformer": None, "arena": "stone", "roguelike": "dungeon"}
+
 
 # ---------------------------------------------------------------------------- maps
 def generate_map(seed: int, w: int = 36, h: int = 26, coins: int = 12, slimes: int = 7) -> list[str]:
@@ -294,9 +298,10 @@ def scaffold(project: Path, title: str = "Hermes Quest", theme: str = "forest", 
     for name, args in sprite_plan:
         if need("sprite", name):
             _gen(forge_sprite, {"project": pstr, "name": name, **args})
-    tiles_name = f"{th['lower']}_{th['upper']}"
+    upper = GENRE_TERRAIN.get(genre) or th["upper"]
+    tiles_name = f"{th['lower']}_{upper}"
     if need("tileset", tiles_name):
-        _gen(forge_tileset, {"project": pstr, "lower": th["lower"], "upper": th["upper"], "seed": seed,
+        _gen(forge_tileset, {"project": pstr, "lower": th["lower"], "upper": upper, "seed": seed,
                              "name": tiles_name})
     sfx_plan = _sfx_plan(genre)
     for key, (preset, style, n) in sfx_plan.items():
@@ -364,7 +369,7 @@ def scaffold(project: Path, title: str = "Hermes Quest", theme: str = "forest", 
         "player": {"speed": 72, "hp": 3, "attack_radius": 26, "attack_cooldown": 0.6},
         "enemy": {"speed": 34 if genre == "arena" else 28, "chase_radius": 70},
         "goal_hint": GOALS[genre],
-        "tiles": {"frames": 4 if anim_sheet else 1, "lower": th["lower"], "upper": th["upper"]},
+        "tiles": {"frames": 4 if anim_sheet else 1, "lower": th["lower"], "upper": upper},
         "sky_top": th["sky_top"], "sky_bottom": th["sky_bottom"],
         **{k: v for k, v in old.items() if k in ("player", "enemy", "map", "music_volume", "subtitle")},
         "assets": assets,

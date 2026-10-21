@@ -90,16 +90,25 @@ FORGE_TILESET = {
 FORGE_MODEL3D = {
     "name": "forge_model3d",
     "description": "3D models as .glb with previews (views + turntable GIF). source=procedural: offline low-poly "
-                   "generators with animations; fal/meshy: AI text- or image-to-3D (needs key); import: an existing .glb.",
+                   "generators with animations; tripo/fal/meshy: AI text- or image-to-3D (needs key). "
+                   "tripo also rigs (rig=true) and applies preset animations (animate=[walk,dance...]), which is how an "
+                   "AI character comes back ready to drop into Godot, Unity or Unreal; import: an existing .glb.",
     "parameters": {"type": "object", "properties": {
         "project": _PROJECT, "name": _NAME, "seed": _SEED,
-        "source": {"type": "string", "enum": ["procedural", "fal", "meshy", "import"]},
+        "source": {"type": "string", "enum": ["procedural", "tripo", "fal", "meshy", "import"]},
         "kind": {"type": "string", "enum": list(procgen.KINDS)},
         "animations": {"type": "array", "items": {"type": "string", "enum": list(procgen.ANIMATIONS)}},
         "duration": {"type": "number"}, "hue": {"type": "number", "description": "0-1"},
         "layout": {"type": "array", "items": {"type": "string"}, "description": "dungeon rows: # wall . floor D door C chest T torch"},
         "prompt": {"type": "string"}, "image": {"type": "string", "description": "Image path or URL for image-to-3D"},
-        "model": {"type": "string", "description": "fal model id override"}, "params": {"type": "object"},
+        "rig": {"type": "boolean", "description": "tripo only: auto-rig the generated character (biped, mixamo spec) so it "
+                                                  "can be animated and dropped into an engine"},
+        "animate": {"type": "array", "items": {"type": "string"},
+                    "description": "tripo only: preset animations to bake onto the rig (walk, run, idle, jump, slash, "
+                                   "shoot, hurt, fall, turn, climb, dive; up to 5). Implies rig=true."},
+        "model": {"type": "string", "description": "fal model id / tripo model version override"},
+        "params": {"type": "object"},
+        "timeout": {"type": "integer", "description": "seconds to wait for a hosted 3D job"},
         "path": {"type": "string", "description": "import: .glb path"}}},
 }
 

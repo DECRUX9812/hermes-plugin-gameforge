@@ -15,7 +15,7 @@ metadata:
 # 3D Asset Pipeline Skill
 
 `forge_model3d` makes .glb models three ways — offline low-poly generators with animation clips, AI
-text/image-to-3D through fal.ai or Meshy, or import — and always returns views + a turntable GIF.
+text/image-to-3D through Tripo (with auto-rigging and preset animations), fal.ai or Meshy, or import — and always returns views + a turntable GIF.
 
 ## When to Use
 
@@ -33,8 +33,14 @@ sent to that provider and billed by them). Blender optional for conversion/LODs.
 - Animated: `kind=character animations=[walk,idle,wave]`; `kind=chest animations=[open]`; any model:
   `spin`, `bob`, `bounce`, `pulse`. Clips are named glTF animations every engine can play.
 - Dungeon from a layout: `kind=dungeon layout=["#####","#.C.#","#####"]`.
-- AI: `source=fal prompt="a mossy stone well, low poly"` or `source=fal image=concept.png`
-  (`model=` to choose another fal endpoint). `source=meshy` likewise.
+- AI: `source=tripo prompt="a mossy stone well, low poly"` (needs `TRIPO_API_KEY`), or
+  `source=fal` / `source=meshy` with `prompt=` / `image=` (`model=` overrides the endpoint).
+- Rigged character in one call: `source=tripo prompt="a brass goblin chieftain" rig=true
+  animate=[walk,wave]` — generation → `animations/rig` → `animations/retarget` → `.glb` with clips.
+  `animate=` implies `rig=true`; up to five presets (idle, walk, run, jump, slash, shoot, hurt,
+  fall, turn, climb, dive, or "preset:quadruped:walk"-style forms).
+- No key? `source=procedural kind=character animations=[walk,wave]` gives a rigged, animated,
+  engine-ready `.glb` offline, so the rest of the pipeline can be built before spending credits.
 - Then: LODs / FBX via `gameforge:blender-pipeline`.
 
 ## Pitfalls

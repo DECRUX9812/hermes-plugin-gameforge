@@ -7,7 +7,7 @@ playtester that **actually plays the build** and tells you where it breaks or ge
 export to the web, phones and itch.io.
 
 Everything runs offline by default (pure Python + Pillow, which Hermes already ships). AI providers
-(fal.ai, Meshy, ElevenLabs, Edge TTS, your Hermes TTS) are opt-in upgrades, never requirements.
+(Tripo, fal.ai, Meshy, ElevenLabs, Edge TTS, your Hermes TTS) are opt-in upgrades, never requirements.
 Nothing touches Hermes core: it is a standard `plugin.yaml` + `register(ctx)` plugin.
 
 ```
@@ -24,7 +24,7 @@ hermes gameforge demo            # builds, playtests and exports a complete game
 | `forge_voice` | NPC casts: Animalese-style **babble**, Edge neural TTS or your Hermes TTS, with character FX (goblin, giant, robot, ghost, radio, demon, fairy, elder, cave) and typewriter timings | ✓ |
 | `forge_sprite` | 16×16 RPG characters with 4-direction walk/idle, monsters, scalable item icons, props, **AI image → pixel sprite**, sheet packing → PNG + TexturePacker/Phaser JSON + Godot SpriteFrames + GIF | ✓ |
 | `forge_tileset` | seamless Wang-corner transitions between 12 terrains (animated water/lava), fill variants, **Godot TileSet with terrains + collision** | ✓ |
-| `forge_model3d` | 18 low-poly generators (trees, houses, terrain, dungeons from ASCII, rigged blocky characters…), animation clips (walk, wave, open, spin…) → **.glb** + turntable · fal.ai / Meshy text- and image-to-3D | ✓ |
+| `forge_model3d` | 18 low-poly generators (trees, houses, terrain, dungeons from ASCII, rigged blocky characters…), animation clips (walk, wave, open, spin…) → **.glb** + turntable · **Tripo** text- and image-to-3D with auto-rigging and preset animations · fal.ai / Meshy | ✓ |
 | `forge_engine` | **web**: complete HTML5 game from your assets across 4 genres (`topdown`, `platformer`, `arena`, `roguelike`) · **Godot 4**: scaffold, import, headless run with parsed errors · **Unity**: scaffold + batch-mode setup · **Blender**: convert, LODs, Eevee turntables, animation, custom bpy · **Unreal**: asset import | ✓ |
 | `forge_playtest` | plays the build in headless Chrome (explorer / monkey / **vision-LLM agent**) or bot-plays Godot at 40× real time → crashes, stuck spots, FPS, event droughts, boredom, deaths/wins, heatmap, HTML report | ✓ |
 | `forge_export` | PWA bundle (installable on phones, offline), itch.io zip, **single-file HTML**, Capacitor Android/iOS wrapper, butler push, Godot and Unity platform builds | ✓ |
@@ -32,6 +32,20 @@ hermes gameforge demo            # builds, playtests and exports a complete game
 Ten bundled skills teach the agent the workflows: `gameforge:game-studio` (idea → shipped),
 `playtesting`, `godot-dev`, `unity-dev`, `blender-pipeline`, `game-audio`, `pixel-art-pipeline`,
 `3d-asset-pipeline`, `ship-it` and `game-reverse-engineering` (Ghidra headless export, ILSpy, GDRE).
+
+## Rigged 3D from a sentence
+
+`forge_model3d source=tripo` runs Tripo's V3 chain in one call — `text-to-model` → `animations/rig`
+(biped, mixamo spec) → `animations/retarget` (preset clips, up to five) → download the `.glb`:
+
+```
+forge_model3d source=tripo prompt="a brass goblin chieftain" rig=true animate=[walk,wave]
+```
+
+What comes back is a rigged, animated `.glb` that imports into Godot, Unity, Unreal, Blender and
+three.js as-is. Without a Tripo key the same tool still produces rigged characters offline
+(`source=procedural`, clips: walk/wave/idle/spin/open/bounce/bob/pulse), so the pipeline is testable
+before you spend a credit.
 
 ## The playtester
 
@@ -86,12 +100,12 @@ Procedural output is CC0. AI-provider output follows that provider's terms.
 
 Hermes Desktop → Settings → Plugins → GameForge, or `plugins.entries.gameforge.settings` in `config.yaml`:
 `default_project`, `godot_path`, `unity_path`, `blender_path`, `unreal_path`, `browser_path`, and the
-optional secrets `FAL_KEY`, `MESHY_API_KEY`, `ELEVENLABS_API_KEY` (stored in `.env`).
+optional secrets `TRIPO_API_KEY`, `FAL_KEY`, `MESHY_API_KEY`, `ELEVENLABS_API_KEY` (stored in `.env`).
 
 ## Disclosure
 
-- **Network:** none by default. Opt-in calls: fal.ai / Meshy (3D generation; prompt and image are
-  sent), ElevenLabs (SFX prompt), Edge TTS (dialogue text, when `edge-tts` is installed), GitHub
+- **Network:** none by default. Opt-in calls: Tripo / fal.ai / Meshy (3D generation; prompt and image
+  are sent — Tripo also receives the rig and retarget task ids), ElevenLabs (SFX prompt), Edge TTS (dialogue text, when `edge-tts` is installed), GitHub
   (Godot export templates, only on `forge_export target=godot_templates`, about 1 GB), itch.io via
   butler (only on `target=itch` with an explicit `itch_target`).
 - **Processes:** runs Chrome/Chromium headless for playtests, and Godot, Unity, Blender,
