@@ -56,9 +56,9 @@ def test_character_sheet_has_four_facings_with_idle_and_walk(tmp_path):
     anims = res["animations"]
     for facing in sprites.FACINGS:
         assert len(anims[f"idle_{facing}"]) == 2 and len(anims[f"walk_{facing}"]) == 4
-    atlas = json.loads(Path(res["atlas_json"]).read_text())
+    atlas = json.loads(Path(res["atlas_json"]).read_text(encoding="utf-8"))
     assert len(atlas["frames"]) == 24 and atlas["meta"]["frameTags"]
-    tres = Path(res["godot_spriteframes"]).read_text()
+    tres = Path(res["godot_spriteframes"]).read_text(encoding="utf-8")
     assert tres.startswith('[gd_resource type="SpriteFrames"') and '&"walk_left"' in tres
 
 
@@ -93,7 +93,7 @@ def test_wang_transitions_join_seamlessly():
 
 def test_tileset_writes_godot_terrains_for_all_tiles(tmp_path):
     res = call(forge_tileset, project=str(tmp_path), lower="water", upper="grass", seed=1)
-    tres = Path(res["godot_tileset"]).read_text()
+    tres = Path(res["godot_tileset"]).read_text(encoding="utf-8")
     assert "terrain_set_0/mode = 1" in tres
     assert tres.count("/terrain_set = 0") == 16 + 8
     assert "physics_layer_0/polygon_0" in tres  # deep water is solid
@@ -128,7 +128,7 @@ def test_babble_voice_writes_lines_and_typewriter_timings(tmp_path):
     res = call(forge_voice, project=str(tmp_path), engine="babble",
                cast={"Goblin": {"fx": "goblin", "pitch_hz": 260}},
                lines=[{"character": "Goblin", "text": "Shiny! Mine?"}])
-    dialogue = json.loads(Path(res["dialogue"]).read_text())
+    dialogue = json.loads(Path(res["dialogue"]).read_text(encoding="utf-8"))
     line = dialogue["lines"][0]
     assert line["character"] == "Goblin" and len(line["timings"]) == len("Shiny! Mine?")
     times = [t["t"] for t in line["timings"]]
@@ -138,7 +138,7 @@ def test_babble_voice_writes_lines_and_typewriter_timings(tmp_path):
 
 def test_ledger_records_recipes_for_regeneration(tmp_path):
     call(forge_sfx, project=str(tmp_path), preset="coin", seed=5, name="pickup")
-    ledger = json.loads((tmp_path / "gameforge.json").read_text())
+    ledger = json.loads((tmp_path / "gameforge.json").read_text(encoding="utf-8"))
     entry = next(a for a in ledger["assets"] if a["name"] == "pickup")
     assert entry["recipe"]["variants"][0]["seed"] == 5 and entry["files"] == ["assets/sfx/pickup.wav"]
 

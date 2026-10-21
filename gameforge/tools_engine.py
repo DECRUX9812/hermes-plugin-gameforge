@@ -152,7 +152,7 @@ def forge_export(args: dict) -> str:
     title = proj.load(p).get("name") or "game"
     cfg_file = p / "web" / "game.json"
     if cfg_file.exists():
-        title = json.loads(cfg_file.read_text()).get("title", title)
+        title = json.loads(cfg_file.read_text(encoding="utf-8")).get("title", title)
     web_dir = Path(os.path.expanduser(args["source"])) if args.get("source") else p / "web"
     dist = proj.asset_dir(p, "export")
     icon = next((p / f for f in (proj.find(p, "sprite", "player") or {}).get("files", []) if f.endswith("player.png")), None)

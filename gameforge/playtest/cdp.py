@@ -132,12 +132,12 @@ class Browser:
         self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
         port_file = Path(self.profile) / "DevToolsActivePort"
         deadline = time.monotonic() + 20
-        while not port_file.exists() or not port_file.read_text().strip():
+        while not port_file.exists() or not port_file.read_text(encoding="utf-8").strip():
             if self.proc.poll() is not None or time.monotonic() > deadline:
                 self.close()
                 raise RuntimeError("the browser did not start (no DevToolsActivePort)")
             time.sleep(0.1)
-        port = int(port_file.read_text().split()[0])
+        port = int(port_file.read_text(encoding="utf-8").split()[0])
         targets = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=10).read())
         page = next(t for t in targets if t.get("type") == "page")
         self.ws = WebSocket(page["webSocketDebuggerUrl"])
