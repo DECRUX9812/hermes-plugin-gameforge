@@ -35,7 +35,7 @@ def locate(explicit: str | None = None) -> str | None:
 
 def scaffold(project: Path, title: str, theme: str, seed: int, hero: str) -> dict:
     web_res = web.scaffold(project, title=title, theme=theme, seed=seed, hero=hero)
-    cfg = json.loads(Path(web_res["config"]).read_text())
+    cfg = json.loads(Path(web_res["config"]).read_text(encoding="utf-8"))
     root = project / "unity"
     res = root / "Assets" / "Resources" / "GameForge"
     res.mkdir(parents=True, exist_ok=True)
@@ -53,7 +53,7 @@ def scaffold(project: Path, title: str, theme: str, seed: int, hero: str) -> dic
         return "GameForge/" + src.stem
 
     def sheet(png_key: str, json_key: str) -> dict:
-        atlas = json.loads((web_dir / cfg["assets"][json_key]).read_text())
+        atlas = json.loads((web_dir / cfg["assets"][json_key]).read_text(encoding="utf-8"))
         names = list(atlas["frames"])
         rects = [atlas["frames"][n]["frame"] for n in names]
         anims = [{"name": t["name"], "frames": [names.index(f) for f in t["frames"]]} for t in atlas["meta"]["frameTags"]]
@@ -85,7 +85,7 @@ def batch(binary: str, unity_project: Path, method: str, timeout: int = 3600) ->
     start = time.monotonic()
     proc = subprocess.run([binary, "-batchmode", "-quit", "-nographics", "-projectPath", str(unity_project),
                            "-executeMethod", method, "-logFile", str(log)], capture_output=True, text=True, timeout=timeout)
-    text = log.read_text(errors="replace") if log.exists() else proc.stdout + proc.stderr
+    text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else proc.stdout + proc.stderr
     errors = [ln.strip() for ln in text.splitlines() if _ERR.search(ln)][:40]
     return {"ok": proc.returncode == 0 and not any("error CS" in e for e in errors), "exit_code": proc.returncode,
             "errors": errors, "log": log, "wall_seconds": round(time.monotonic() - start, 1),

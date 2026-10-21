@@ -103,7 +103,7 @@ def _data_uri(path: Path, compress_audio: bool) -> str:
 
 def single_file(web_dir: Path, dest: Path, compress_audio: bool = True) -> dict:
     """Inline game.json (with every asset as a data URI) and game.js into one HTML file."""
-    cfg = json.loads((web_dir / "game.json").read_text())
+    cfg = json.loads((web_dir / "game.json").read_text(encoding="utf-8"))
 
     def inline(v):
         if isinstance(v, str) and (web_dir / v).is_file():

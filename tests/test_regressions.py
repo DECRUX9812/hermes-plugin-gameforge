@@ -84,8 +84,8 @@ def test_export_template_zip_keeps_its_layout(tmp_path):
     with zipfile.ZipFile(tpz) as z:
         count = godot._extract_tpz(z, dest)
     assert count == 3
-    assert (dest / "linux_release.x86_64").read_text() == "bin"
-    assert (dest / "version.txt").read_text() == "4.7.1.stable"
+    assert (dest / "linux_release.x86_64").read_text(encoding="utf-8") == "bin"
+    assert (dest / "version.txt").read_text(encoding="utf-8") == "4.7.1.stable"
     assert not (dest / "templates").exists()
     assert not (dest / "__MACOSX").exists()
 

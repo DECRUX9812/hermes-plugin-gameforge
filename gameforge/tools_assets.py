@@ -160,7 +160,7 @@ def forge_voice(args: dict) -> str:
         manifest.append({"id": stem, "character": who, "text": text, "file": str(wav_path.relative_to(p)),
                          "engine": engine, "timings": timings})
     dialogue = out_dir / (proj.safe_name(args.get("name") or "dialogue") + ".json")
-    existing = json.loads(dialogue.read_text()) if dialogue.exists() else {"lines": []}
+    existing = json.loads(dialogue.read_text(encoding="utf-8")) if dialogue.exists() else {"lines": []}
     keep = [l for l in existing["lines"] if l["id"] not in {m["id"] for m in manifest}]
     dialogue.write_text(json.dumps({"cast": cast, "lines": keep + manifest}, indent=1), encoding="utf-8")
     proj.set_meta(p, "cast", cast)

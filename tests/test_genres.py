@@ -22,7 +22,7 @@ def test_every_genre_scaffolds_and_passes_node_syntax(genre, tmp_path):
     assert js.exists()
     syn = subprocess.run(["node", "--check", str(js)], capture_output=True, text=True)
     assert syn.returncode == 0, syn.stderr
-    cfg = json.loads((p / "web" / "game.json").read_text())
+    cfg = json.loads((p / "web" / "game.json").read_text(encoding="utf-8"))
     assert cfg["genre"] == genre
     assert "player" in cfg["assets"]
     assert "tiles" in cfg["assets"]
