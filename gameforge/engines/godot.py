@@ -160,7 +160,11 @@ encrypt_directory=false
 
 custom_template/debug=""
 custom_template/release=""
-""" + ("progressive_web_app/enabled=true\nhtml/canvas_resize_policy=2\n" if platform == "Web" else ""))
+""" + ("progressive_web_app/enabled=true\nhtml/canvas_resize_policy=2\n"
+       # Single-threaded web export: a threaded build needs SharedArrayBuffer, which means
+       # COOP/COEP headers most static hosts (and plain file://) do not send, so the game
+       # would refuse to start. Single-threaded runs anywhere.
+       "threads/export_type=0\n" if platform == "Web" else ""))
     return "\n".join(blocks)
 
 
@@ -283,8 +287,12 @@ def export(binary: str, project: Path, target: str, debug: bool = False, timeout
                        "(about 1 GB) and installs it."}
     if not (project / "export_presets.cfg").exists():
         (project / "export_presets.cfg").write_text(export_presets(), encoding="utf-8")
-    if not (project / ".godot").exists():
-        import_assets(binary, project)
+    # Always re-import: a project scaffolded (or re-scaffolded) after the .godot cache was
+    # built has unimported assets, and the export silently ships an empty game without this.
+    imported = import_assets(binary, project)
+    import_errors = [i for i in imported.get("issues", []) if i["level"] == "error"]
+    if imported.get("code") not in (0, None) and import_errors:
+        return {"ok": False, "error": "asset import failed before export", "details": imported}
     name, _, rel = PRESETS[target]
     out = project / rel
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -296,7 +304,12 @@ def export(binary: str, project: Path, target: str, debug: bool = False, timeout
 
 
 def install_templates(binary: str, timeout: int = 3600) -> dict:
-    """Download the official export templates for this exact Godot build from GitHub releases."""
+    """Download the official export templates for this exact Godot build from GitHub releases.
+
+    The ``.tpz`` is a zip with one ``templates/`` directory inside; only that leading folder is
+    stripped, so the layout Godot expects (``<number>.<status>/linux_release.x86_64`` …) is kept.
+    """
+    import urllib.error
     import urllib.request
     import zipfile
 
@@ -306,14 +319,35 @@ def install_templates(binary: str, timeout: int = 3600) -> dict:
     dest_root = Path(os.path.expanduser("~/.local/share/godot/export_templates")) / f"{number}.{status}"
     dest_root.mkdir(parents=True, exist_ok=True)
     tpz = dest_root.parent / f"{tag}.tpz"
-    with urllib.request.urlopen(url, timeout=timeout) as resp, open(tpz, "wb") as fh:
-        shutil.copyfileobj(resp, fh)
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp, open(tpz, "wb") as fh:
+            shutil.copyfileobj(resp, fh)
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "error": f"no export templates published for {version(binary)} ({exc.code} from {url})",
+                "fix": "Open the project in the Godot editor and use Editor > Manage Export Templates > Download, "
+                       "or install a release build whose .tpz exists on github.com/godotengine/godot-builds."}
     with zipfile.ZipFile(tpz) as z:
-        for member in z.namelist():
-            if member.endswith("/"):
-                continue
-            target = dest_root / Path(member).name
-            with z.open(member) as src, open(target, "wb") as dst:
-                shutil.copyfileobj(src, dst)
+        count = _extract_tpz(z, dest_root)
     tpz.unlink()
-    return {"installed": dest_root, "version": tag, "source": url}
+    return {"installed": dest_root, "version": tag, "source": url, "ok": True, "files": count}
+
+
+def _extract_tpz(z, dest_root: Path) -> int:
+    """Unpack an export-template zip into ``dest_root``, stripping only a leading ``templates/``."""
+    import zipfile
+
+    names = z.namelist()
+    prefix = "templates/" if any(n.startswith("templates/") for n in names) else ""
+    count = 0
+    for member in names:
+        if member.endswith("/"):
+            continue
+        rel = member[len(prefix):] if prefix and member.startswith(prefix) else member
+        if not rel or rel.startswith("..") or member.startswith("__MACOSX"):
+            continue
+        target = dest_root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with z.open(member) as src, open(target, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+        count += 1
+    return count

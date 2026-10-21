@@ -398,14 +398,34 @@ def polish(buf: list[float], style: str) -> list[float]:
     return dsp.normalize(buf, 0.85)
 
 
+LAYERED_POST = ("volume", "sound_vol", "pitch", "gain")
+
+
 def render(preset: str, seed: int, params: dict | None = None, style: str = "retro",
            variation: int = 0) -> tuple[list[float], dict]:
-    """One sound. Returns the buffer and the recipe needed to reproduce it exactly."""
+    """One sound. Returns the buffer and the recipe needed to reproduce it exactly.
+
+    Layered presets are hand-built from several synths, so they have no sfxr parameter set.
+    They accept only post-processing knobs (``volume``/``sound_vol``/``gain``, ``pitch`` in
+    semitones); anything else is rejected by name rather than silently falling through to a
+    generic 440 Hz square blip, which is what used to happen.
+    """
     preset = preset.lower()
     rng = random.Random(seed)
     recipe: dict = {"preset": preset, "seed": seed, "style": style, "variation": variation}
-    if preset in LAYERED and not params:
+    if preset in LAYERED:
         buf = LAYERED[preset](random.Random(seed * 7919 + variation))
+        if params:
+            unknown = sorted(set(params) - set(LAYERED_POST))
+            if unknown:
+                raise ValueError(f"{preset!r} is a layered preset; it supports only {', '.join(LAYERED_POST)} "
+                                 f"(got {', '.join(unknown)}). Use an sfxr preset for waveform parameters.")
+            volume = float(params.get("volume", params.get("sound_vol", params.get("gain", 1.0))))
+            if volume != 1.0:
+                buf = [x * volume for x in buf]
+            if params.get("pitch"):
+                buf = dsp.pitch_shift(buf, float(params["pitch"]))
+            recipe["params"] = {k: params[k] for k in params}
         return polish(buf, style), recipe
     if params:
         base = SfxrParams.from_dict({**(SFXR_GENERATORS.get(preset, lambda r: SfxrParams())(rng).to_dict()

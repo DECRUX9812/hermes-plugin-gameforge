@@ -188,20 +188,32 @@ def resample(buf: list[float], factor: float) -> list[float]:
 
 
 def time_stretch(buf: list[float], ratio: float, rate: int = RATE) -> list[float]:
-    """Overlap-add time stretch (``ratio`` > 1 = longer) that keeps pitch."""
+    """Overlap-add time stretch (``ratio`` > 1 = longer) that keeps pitch.
+
+    The grain adapts to the buffer: a fixed 40 ms grain (1764 samples at 44.1 kHz) is longer
+    than a short click, and the old ``pos_in + grain < len(buf)`` loop then never ran at all,
+    returning silence. Short buffers get a shorter grain, and a buffer too short for even one
+    grain is resampled instead of being dropped.
+    """
+    if not buf:
+        return []
     grain = int(rate * 0.04)
-    hop_out = grain // 2
+    grain = max(8, min(grain, len(buf) // 2)) if len(buf) >= 16 else len(buf)
+    hop_out = max(1, grain // 2)
     hop_in = max(1, int(hop_out / ratio))
     win = [0.5 - 0.5 * math.cos(2 * math.pi * i / grain) for i in range(grain)]
     n_out = int(len(buf) * ratio) + grain
     out, norm = [0.0] * n_out, [0.0] * n_out
     pos_in = pos_out = 0
-    while pos_in + grain < len(buf) and pos_out + grain < n_out:
+    while pos_in + grain <= len(buf) and pos_out + grain <= n_out:
         for i in range(grain):
             out[pos_out + i] += buf[pos_in + i] * win[i]
             norm[pos_out + i] += win[i]
         pos_in += hop_in
         pos_out += hop_out
+    if pos_out == 0:
+        # Too short for one grain: resampling preserves the length contract and stays audible.
+        return resample(buf, 1.0 / ratio) if ratio > 0 else list(buf)
     return [o / n if n > 1e-3 else o for o, n in zip(out[:pos_out], norm[:pos_out])]
 
 

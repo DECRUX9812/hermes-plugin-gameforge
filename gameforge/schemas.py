@@ -116,6 +116,9 @@ FORGE_ENGINE = {
                    "turntable, animate, info, script"},
         "title": {"type": "string"}, "subtitle": {"type": "string"}, "seed": _SEED,
         "theme": {"type": "string", "enum": list(web.THEMES)},
+        "genre": {"type": "string", "enum": list(web.GENRES),
+                  "description": "web engine only: topdown (collect-and-escape), platformer (physics side-scroller), "
+                                 "arena (wave survival), roguelike (key-and-exit dungeon). Default topdown."},
         "hero": {"type": "string", "enum": list(sprites.ARCHETYPES)},
         "regenerate": {"type": "boolean", "description": "Rebuild assets that already exist"},
         "seconds": {"type": "number"}, "scene": {"type": "string"},

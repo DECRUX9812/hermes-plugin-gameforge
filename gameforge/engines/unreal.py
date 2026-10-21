@@ -11,6 +11,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .. import project as proj
+
 GLOBS = ("~/UnrealEngine/Engine/Binaries/Linux/UnrealEditor-Cmd", "/opt/UnrealEngine/Engine/Binaries/Linux/UnrealEditor-Cmd",
          "/Users/Shared/Epic Games/UE_*/Engine/Binaries/Mac/UnrealEditor-Cmd",
          r"C:\Program Files\Epic Games\UE_*\Engine\Binaries\Win64\UnrealEditor-Cmd.exe")
@@ -55,7 +57,7 @@ def locate(explicit: str | None = None) -> str | None:
 
 def import_script(project: Path, root: str = "/Game/GameForge") -> Path:
     """Write ``unreal_import.py`` covering every importable file in the GameForge ledger."""
-    ledger = json.loads((project / "gameforge.json").read_text())
+    ledger = proj.load(project)          # empty ledger for a fresh project instead of FileNotFoundError
     files = []
     for asset in ledger["assets"]:
         for rel in asset["files"]:
@@ -63,6 +65,7 @@ def import_script(project: Path, root: str = "/Game/GameForge") -> Path:
             if src.suffix.lower() in IMPORTABLE and not src.name.endswith(("_preview.png", "_views.png", "_sheet_preview.png")):
                 files.append({"src": str(src.resolve()), "dest": f"{root}/{asset['kind'].capitalize()}"})
     script = project / "unreal_import.py"
+    project.mkdir(parents=True, exist_ok=True)     # a fresh path has no directory to write into yet
     script.write_text(_IMPORT.replace("{payload}", json.dumps({"files": files, "root": root})), encoding="utf-8")
     return script
 

@@ -240,13 +240,17 @@ class WebPlaytester:
                 run.moments.append(Moment(round(t, 1), "frozen", "screen unchanged for 6s while input was held", s))
 
             # ---------------- choose inputs
-            if self.policy == "agent" and self.llm is not None and t >= next_agent:
+            genre = (state.get("genre") or "") if isinstance(state, dict) else ""
+            policy = self._effective_policy(genre)
+            if policy == "agent" and self.llm is not None and t >= next_agent:
                 self._agent_step(run, t, state, controls)
                 next_agent = t + 4.0
-            elif self.policy == "monkey":
+            elif policy == "monkey":
                 if self.rng.random() < 0.3:
                     self._hold({self.rng.choice(MOVES + controls.get("action", []))})
-            elif self.policy in ("explorer", "agent"):
+            elif policy in ("platformer", "arena", "roguelike"):
+                self._genre_step(run, t, state, controls, policy, still_since)
+            elif policy in ("explorer", "agent"):
                 blocked = state.get("blocked", 0) > 0.25 or (still_since is not None and t - still_since > 0.6)
                 if blocked and direction and pos and pos[0] is not None:
                     self.walls[(int(pos[0] // 48), int(pos[1] // 48), direction)] = t
@@ -270,6 +274,63 @@ class WebPlaytester:
         _, s = self._shot(f"{shots_taken:02d}_end")
         run.moments.append(Moment(round(time.monotonic() - run.started, 1), "end", "session end", s))
         return self._report(run, has_tel, deaths, wins)
+
+    def _effective_policy(self, genre: str) -> str:
+        """``policy="auto"`` (and any genre-less run) resolves to the policy that fits the genre:
+        a wanderer never finishes a platformer, so the same run should drive the right inputs."""
+        if self.policy not in ("auto", ""):
+            return self.policy
+        return {"platformer": "platformer", "arena": "arena", "roguelike": "roguelike"}.get(genre, "explorer")
+
+    def _genre_step(self, run: Run, t: float, state: dict, controls: dict, policy: str,
+                    still_since: float | None = None) -> None:
+        """Genre-shaped input: the difference between 'it moved' and 'it played the game'."""
+        action = controls.get("action") or ["Space"]
+        if policy == "platformer":
+            # A tap-jump is cut short by the variable-jump-height rule (release = shorter hop), so
+            # the bot HOLDS the jump key for the better part of a second: the same thing a player does.
+            # The jump cadence is re-randomised every life: a fixed cadence against a fixed pit is a
+            # deterministic death loop (same phase, same fall, forever).
+            jump = action[0]
+            deaths = state.get("deaths", 0)
+            if deaths != getattr(self, "_pf_deaths", None):
+                self._pf_deaths = deaths
+                self._pf_gap = self.rng.uniform(0.34, 0.62)
+                self._pf_hold, self._pf_cd = 0, 0
+            p = state.get("progress", 0) or 0
+            if p > getattr(self, "_pf_progress", -1):
+                self._pf_progress, self._pf_moved = p, t
+            stalled = t - getattr(self, "_pf_moved", t) > 0.8
+            keys = {"ArrowRight"}
+            if state.get("on_ground") and t >= getattr(self, "_pf_cd", 0) and (t >= getattr(self, "_pf_hold", 0) or stalled):
+                self._pf_hold = t + 0.42          # hold long enough to reach full height
+                self._pf_cd = t + getattr(self, "_pf_gap", 0.48)
+                if stalled:
+                    self._pf_moved = t            # give this jump a chance before re-triggering
+            if t < getattr(self, "_pf_hold", 0):
+                keys.add(jump)
+            self._hold(keys)
+        elif policy == "arena":
+            if t >= getattr(self, "_ar_turn", 0) or state.get("hp", 9) < getattr(self, "_ar_hp", 9):
+                self._ar_dir = self.rng.choice(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"])
+                self._ar_turn = t + self.rng.uniform(0.9, 1.7)
+                self._ar_hp = state.get("hp", 9)
+            self._hold({getattr(self, "_ar_dir", "ArrowRight")} | set(action))   # fire while moving
+        else:  # roguelike
+            blocked = state.get("blocked", 0) > 0.25 or (still_since is not None and t - still_since > 0.5)
+            direction = getattr(self, "_rg_dir", None)
+            if direction is None or t >= getattr(self, "_rg_turn", 0) or blocked:
+                pos = (state.get("x"), state.get("y"))
+                direction = self._pick_direction(run, pos, blocked, direction)
+                self._rg_dir, self._rg_turn = direction, t + self.rng.uniform(0.7, 1.4)
+            keys = {direction}
+            if self.rng.random() < 0.15:
+                keys.add(self.rng.choice([m for m in MOVES if m != direction]))
+            self._hold(keys)
+            if t >= getattr(self, "_rg_swing", 0):
+                for k in action:
+                    self._tap(k)
+                self._rg_swing = t + 0.5
 
     def _pick_direction(self, run: Run, pos, blocked: bool, current: str | None) -> str:
         if pos and pos[0] is not None:

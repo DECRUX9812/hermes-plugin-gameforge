@@ -57,7 +57,9 @@ def forge_engine(args: dict) -> str:
     if engine == "web":
         if action != "scaffold":
             return fail("engine 'web' supports action 'scaffold' (play/test it with forge_playtest, ship with forge_export)")
-        res = web.scaffold(p, title, theme, seed, hero, args.get("subtitle", ""), bool(args.get("regenerate")))
+        genre = args.get("genre") or "topdown"
+        res = web.scaffold(p, title, theme, seed, hero, args.get("subtitle", ""), bool(args.get("regenerate")),
+                           genre=genre)
         return ok(**res)
     if engine == "godot":
         b = _bin("godot")
@@ -123,10 +125,13 @@ def forge_playtest(args: dict) -> str:
             return _missing("godot")
         rep = godot.playtest(b, p, out, duration, int(args.get("seed", 1)), screenshots=bool(args.get("screenshots")))
         return ok(report=rep, report_file=out / "report.json", media=(rep.get("screenshots") or [])[:2])
-    if target == "web" or target.startswith(("http://", "https://")) or Path(os.path.expanduser(target)).exists():
+    if target == "web" or target.startswith(("http://", "https://")) or _resolve(p, target).exists() \
+            or Path(os.path.expanduser(target)).exists():
         tgt = p / "web" if target == "web" else target
         if target != "web" and not target.startswith("http"):
-            tgt = Path(os.path.expanduser(target))
+            # Resolve against the project first: a relative target is relative to the game,
+            # not to whatever directory the Hermes process happens to run in.
+            tgt = _resolve(p, target)
         policy = args.get("policy", "explorer")
         model = llm() if policy == "agent" else None
         if policy == "agent" and model is None:

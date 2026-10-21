@@ -25,7 +25,7 @@ hermes gameforge demo            # builds, playtests and exports a complete game
 | `forge_sprite` | 16×16 RPG characters with 4-direction walk/idle, monsters, scalable item icons, props, **AI image → pixel sprite**, sheet packing → PNG + TexturePacker/Phaser JSON + Godot SpriteFrames + GIF | ✓ |
 | `forge_tileset` | seamless Wang-corner transitions between 12 terrains (animated water/lava), fill variants, **Godot TileSet with terrains + collision** | ✓ |
 | `forge_model3d` | 18 low-poly generators (trees, houses, terrain, dungeons from ASCII, rigged blocky characters…), animation clips (walk, wave, open, spin…) → **.glb** + turntable · fal.ai / Meshy text- and image-to-3D | ✓ |
-| `forge_engine` | **web**: complete HTML5 game from your assets · **Godot 4**: scaffold, import, headless run with parsed errors · **Unity**: scaffold + batch-mode setup · **Blender**: convert, LODs, Eevee turntables, animation, custom bpy · **Unreal**: asset import | ✓ |
+| `forge_engine` | **web**: complete HTML5 game from your assets across 4 genres (`topdown`, `platformer`, `arena`, `roguelike`) · **Godot 4**: scaffold, import, headless run with parsed errors · **Unity**: scaffold + batch-mode setup · **Blender**: convert, LODs, Eevee turntables, animation, custom bpy · **Unreal**: asset import | ✓ |
 | `forge_playtest` | plays the build in headless Chrome (explorer / monkey / **vision-LLM agent**) or bot-plays Godot at 40× real time → crashes, stuck spots, FPS, event droughts, boredom, deaths/wins, heatmap, HTML report | ✓ |
 | `forge_export` | PWA bundle (installable on phones, offline), itch.io zip, **single-file HTML**, Capacitor Android/iOS wrapper, butler push, Godot and Unity platform builds | ✓ |
 
