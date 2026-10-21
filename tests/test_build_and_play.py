@@ -45,6 +45,7 @@ def test_playtester_catches_a_runtime_crash(game, tmp_path):
     rep = WebPlaytester(broken, tmp_path / "pt", duration=12, seed=1).run()
     assert rep["verdict"] == "BROKEN"
     assert any(i["severity"] == "critical" and "TypeError" in i["detail"] for i in rep["issues"])
+    assert not any(i["title"] == "Player got stuck" for i in rep["issues"])  # the freeze is the crash, not the map
 
 
 @needs_browser

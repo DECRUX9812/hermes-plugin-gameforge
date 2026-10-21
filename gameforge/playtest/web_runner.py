@@ -336,7 +336,8 @@ class WebPlaytester:
                 issue("critical", "Game entered its error screen", m.note, m.t, m.shot)
             elif m.kind == "stuck":
                 where = tuple(round(c / 16) for c in m.data.get("pos", (0, 0)))
-                if where not in stuck_at:
+                crashed_before = any(e.kind == "error" and e.t <= m.t for e in run.moments)
+                if where not in stuck_at and not crashed_before:  # a frozen crash is not also a level bug
                     stuck_at.add(where)
                     issue("major", "Player got stuck", m.note, m.t, m.shot)
             elif m.kind == "frozen":

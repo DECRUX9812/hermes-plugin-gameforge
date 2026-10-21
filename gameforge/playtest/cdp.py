@@ -116,10 +116,11 @@ class WebSocket:
 class Browser:
     """One headless browser with one page. Events (console, exceptions) are queued in ``events``."""
 
-    def __init__(self, binary: str, width: int = 960, height: int = 720, start_url: str = "about:blank") -> None:
+    def __init__(self, binary: str, width: int = 960, height: int = 720, start_url: str = "about:blank",
+                 headless: bool = True) -> None:
         """``start_url`` loads with the browser, so the page is up before we attach."""
         self.profile = tempfile.mkdtemp(prefix="gameforge-chrome-")
-        args = [binary, "--headless=new", "--remote-debugging-port=0", f"--user-data-dir={self.profile}",
+        args = [binary, *(["--headless=new"] if headless else ["--kiosk", "--window-position=0,0"]), "--remote-debugging-port=0", f"--user-data-dir={self.profile}",
                 "--no-first-run", "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required",
                 "--mute-audio", "--no-proxy-server", "--disable-background-networking", "--disable-component-update",
                 "--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable,OptimizationHints,MediaRouter", f"--window-size={width},{height}", "--disable-background-timer-throttling",
