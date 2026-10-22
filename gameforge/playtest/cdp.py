@@ -132,12 +132,8 @@ class Browser:
         self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
         port_file = Path(self.profile) / "DevToolsActivePort"
         deadline = time.monotonic() + 20
-        while not port_file.exists() or not port_file.read_text(encoding="utf-8").strip():
-            if self.proc.poll() is not None or time.monotonic() > deadline:
-                self.close()
-                raise RuntimeError("the browser did not start (no DevToolsActivePort)")
-            time.sleep(0.1)
-        port = int(port_file.read_text(encoding="utf-8").split()[0])
+        port = self._read_devtools_port(port_file, deadline)
+
         targets = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=10).read())
         page = next(t for t in targets if t.get("type") == "page")
         self.ws = WebSocket(page["webSocketDebuggerUrl"])
@@ -148,6 +144,33 @@ class Browser:
         self.width, self.height = width, height
         for domain in ("Page", "Runtime", "Log"):
             self.call(f"{domain}.enable")
+
+    def _read_devtools_port(self, port_file: Path, deadline: float) -> int:
+        """Read Chrome's ``DevToolsActivePort`` once it holds a port.
+
+        Chrome creates the file, then writes into it, so the file exists for a window where a read
+        fails with ``PermissionError`` on Windows (the handle is not yet shareable). Treat that as
+        "not ready yet" and keep polling instead of letting the exception escape; only give up when
+        the browser process died or the deadline passed.
+        """
+        while True:
+            try:
+                text = port_file.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                text = ""
+            except PermissionError:
+                text = ""            # Chrome is mid-write; retry below
+            except OSError:
+                text = ""
+            if text.strip():
+                try:
+                    return int(text.split()[0])
+                except (ValueError, IndexError):
+                    pass
+            if self.proc.poll() is not None or time.monotonic() > deadline:
+                self.close()
+                raise RuntimeError("the browser did not start (no DevToolsActivePort)")
+            time.sleep(0.05)
 
     def call(self, method: str, params: dict | None = None, timeout: float = 30.0) -> dict:
         with self._lock:

@@ -44,10 +44,17 @@ def load(project: Path) -> dict:
     return {"name": project.name, "created": _now(), "assets": []}
 
 
+def _rel(project: Path, path: Path) -> str:
+    """Project-relative path with forward slashes, on every platform."""
+    return path.resolve().relative_to(project).as_posix()
+
+
 def record(project: Path, kind: str, files: list[Path], recipe: dict, name: str) -> dict:
-    """Append (or replace by name+kind) a ledger entry. Paths are stored project-relative."""
+    """Append (or replace by name+kind) a ledger entry. Paths are stored project-relative,
+always with ``/`` separators so the ledger is byte-identical on Windows and POSIX (Godot
+``res://`` and the Unity/Unreal importers read these back verbatim)."""
     data = load(project)
-    entry = {"name": name, "kind": kind, "files": [str(f.relative_to(project)) for f in files],
+    entry = {"name": name, "kind": kind, "files": [_rel(project, f) for f in files],
              "recipe": recipe, "created": _now(), "license": recipe.get("license", "CC0-1.0 (procedurally generated)")}
     data["assets"] = [a for a in data["assets"] if not (a["name"] == name and a["kind"] == kind)] + [entry]
     (project / LEDGER).write_text(json.dumps(data, indent=2), encoding="utf-8")
