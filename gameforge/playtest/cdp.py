@@ -117,7 +117,7 @@ class Browser:
     """One headless browser with one page. Events (console, exceptions) are queued in ``events``."""
 
     def __init__(self, binary: str, width: int = 960, height: int = 720, start_url: str = "about:blank",
-                 headless: bool = True) -> None:
+                 headless: bool = True, extra_args: list[str] | None = None) -> None:
         """``start_url`` loads with the browser, so the page is up before we attach."""
         self.profile = tempfile.mkdtemp(prefix="gameforge-chrome-")
         args = [binary, *(["--headless=new"] if headless else ["--kiosk", "--window-position=0,0"]), "--remote-debugging-port=0", f"--user-data-dir={self.profile}",
@@ -125,6 +125,8 @@ class Browser:
                 "--mute-audio", "--no-proxy-server", "--disable-background-networking", "--disable-component-update",
                 "--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable,OptimizationHints,MediaRouter", f"--window-size={width},{height}", "--disable-background-timer-throttling",
                 "--disable-renderer-backgrounding", "--enable-unsafe-swiftshader", start_url]
+        if extra_args:
+            args[1:1] = list(extra_args)
         if hasattr(os, "geteuid") and os.geteuid() == 0:
             args.insert(1, "--no-sandbox")
         # Headless needs no session bus; on hosts with a stale one every D-Bus call blocks for its 25s timeout.

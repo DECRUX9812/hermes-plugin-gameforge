@@ -19,6 +19,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from ..secrets import get_secret
+
 FAL_TEXT_DEFAULT = "tripo3d/p1/text-to-3d"
 FAL_IMAGE_DEFAULT = "fal-ai/trellis"
 PROVIDERS = ("tripo", "fal", "meshy")
@@ -36,7 +38,7 @@ class ProviderError(RuntimeError):
 
 
 def available() -> dict[str, bool]:
-    return {name: bool(os.environ.get(env)) for name, env in TRIPO_ENV_KEYS.items()}
+    return {name: bool(get_secret(env)) for name, env in TRIPO_ENV_KEYS.items()}
 
 
 def _request(url: str, headers: dict, body: dict | None = None, method: str | None = None, timeout: int = 60) -> dict:
@@ -54,6 +56,39 @@ def data_uri(path: str | Path) -> str:
     p = Path(path)
     mime = mimetypes.guess_type(p.name)[0] or "image/png"
     return f"data:{mime};base64,{base64.b64encode(p.read_bytes()).decode()}"
+
+
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
+
+
+def validated_image_ref(image: str, root: Path | None = None) -> str:
+    """Resolve an ``image`` argument for a provider call.
+
+    URLs and data URIs pass through. A local path is accepted only when it lives inside the
+    project directory (when one is given) and the bytes really are an image — a model-named
+    path must not be able to upload an arbitrary file from the host.
+    """
+    if image.startswith(("http://", "https://", "data:")):
+        return image
+    path = Path(image).expanduser()
+    if not path.is_file():
+        raise ProviderError(f"image {path} is not a file")
+    resolved = path.resolve()
+    if root is not None:
+        base = Path(root).resolve()
+        if resolved != base and base not in resolved.parents:
+            raise ProviderError(f"image {resolved} is outside the project directory {base}")
+    if resolved.suffix.lower() not in IMAGE_SUFFIXES:
+        raise ProviderError(f"image {resolved.name} must be one of {', '.join(IMAGE_SUFFIXES)}")
+    head = resolved.open("rb").read(12)
+    looks_like_image = (
+        head.startswith(b"\x89PNG\r\n\x1a\n")
+        or head.startswith(b"\xff\xd8\xff")
+        or (head[:4] == b"RIFF" and head[8:12] == b"WEBP")
+    )
+    if not looks_like_image:
+        raise ProviderError(f"image {resolved.name} does not look like a png/jpeg/webp")
+    return data_uri(resolved)
 
 
 def _image_ref(image: str) -> str:
@@ -87,7 +122,7 @@ def _find_glb(obj) -> str | None:
 
 def fal_generate(prompt: str | None, image: str | None, model: str | None, extra: dict,
                  timeout_s: int = 600) -> tuple[str, dict]:
-    key = os.environ.get("FAL_KEY")
+    key = get_secret("FAL_KEY")
     if not key:
         raise ProviderError("FAL_KEY is not set")
     model = model or (FAL_IMAGE_DEFAULT if image else FAL_TEXT_DEFAULT)
@@ -118,7 +153,7 @@ def fal_generate(prompt: str | None, image: str | None, model: str | None, extra
 
 
 def meshy_generate(prompt: str | None, image: str | None, extra: dict, timeout_s: int = 900) -> tuple[str, dict]:
-    key = os.environ.get("MESHY_API_KEY")
+    key = get_secret("MESHY_API_KEY")
     if not key:
         raise ProviderError("MESHY_API_KEY is not set")
     headers = {"Authorization": f"Bearer {key}"}
@@ -145,7 +180,7 @@ def meshy_generate(prompt: str | None, image: str | None, extra: dict, timeout_s
 
 
 def _tripo_headers() -> dict:
-    key = os.environ.get("TRIPO_API_KEY")
+    key = get_secret("TRIPO_API_KEY")
     if not key:
         raise ProviderError("TRIPO_API_KEY is not set")
     return {"Authorization": f"Bearer {key}"}
@@ -204,7 +239,7 @@ def tripo_generate(prompt: str | None, image: str | None, model: str | None, ext
     Tripo splits the old single "animate" task into rig + retarget, and a retarget takes the *rig*
     task id as its input, so the chain is generation → rig → retarget, each polled to completion.
     """
-    if not os.environ.get("TRIPO_API_KEY"):
+    if not get_secret("TRIPO_API_KEY"):
         raise ProviderError("TRIPO_API_KEY is not set")
     body_extra = dict(extra or {})
     if model:

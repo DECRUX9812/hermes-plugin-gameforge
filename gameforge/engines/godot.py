@@ -326,10 +326,45 @@ def install_templates(binary: str, timeout: int = 3600) -> dict:
         return {"ok": False, "error": f"no export templates published for {version(binary)} ({exc.code} from {url})",
                 "fix": "Open the project in the Godot editor and use Editor > Manage Export Templates > Download, "
                        "or install a release build whose .tpz exists on github.com/godotengine/godot-builds."}
+    ok, why = _verify_sha512(tpz, url, timeout)
+    if not ok:
+        tpz.unlink(missing_ok=True)
+        return {"ok": False, "error": f"export templates failed verification: {why}",
+                "fix": "Re-run; if SHA512-SUMS.txt keeps disagreeing the download is being tampered with."}
     with zipfile.ZipFile(tpz) as z:
         count = _extract_tpz(z, dest_root)
     tpz.unlink()
     return {"installed": dest_root, "version": tag, "source": url, "ok": True, "files": count}
+
+
+def _verify_sha512(tpz: Path, url: str, timeout: int) -> tuple[bool, str]:
+    """Check the downloaded .tpz against SHA512-SUMS.txt from the same release."""
+    import hashlib
+    import urllib.error
+    import urllib.request
+
+    sums_url = url.rsplit("/", 1)[0] + "/SHA512-SUMS.txt"
+    try:
+        with urllib.request.urlopen(sums_url, timeout=min(timeout, 120)) as resp:
+            text = resp.read().decode("utf-8", "replace")
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
+        return False, f"could not read {sums_url} ({exc})"
+    want = ""
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[-1].lstrip("*").endswith(tpz.name):
+            want = parts[0].lower()
+            break
+    if not want:
+        return False, f"{tpz.name} is not listed in SHA512-SUMS.txt"
+    digest = hashlib.sha512()
+    with open(tpz, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    got = digest.hexdigest()
+    if got != want:
+        return False, f"sha512 mismatch (expected {want[:16]}…, got {got[:16]}…)"
+    return True, "ok"
 
 
 def _extract_tpz(z, dest_root: Path) -> int:
@@ -339,13 +374,19 @@ def _extract_tpz(z, dest_root: Path) -> int:
     names = z.namelist()
     prefix = "templates/" if any(n.startswith("templates/") for n in names) else ""
     count = 0
+    root = dest_root.resolve()
     for member in names:
-        if member.endswith("/"):
+        if member.endswith("/") or member.startswith("__MACOSX"):
             continue
         rel = member[len(prefix):] if prefix and member.startswith(prefix) else member
-        if not rel or rel.startswith("..") or member.startswith("__MACOSX"):
+        if not rel or rel.startswith("/") or "\\" in rel:
             continue
-        target = dest_root / rel
+        parts = Path(rel).parts
+        if any(part in ("..", "") for part in parts) or Path(rel).is_absolute():
+            continue
+        target = (root / rel).resolve()
+        if target != root and root not in target.parents:
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         with z.open(member) as src, open(target, "wb") as dst:
             shutil.copyfileobj(src, dst)

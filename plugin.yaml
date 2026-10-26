@@ -1,5 +1,5 @@
 name: gameforge
-version: 1.1.0
+version: 1.1.1
 manifest_version: 2
 api_version: 1
 description: >-
@@ -20,7 +20,8 @@ provides_tools:
   - forge_engine
   - forge_playtest
   - forge_export
-provides_hooks: []
+provides_hooks:
+  - pre_tool_call
 config_schema:
   default_project:
     type: str

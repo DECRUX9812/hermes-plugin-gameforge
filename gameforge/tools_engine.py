@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 
+from .secrets import get_secret
 from . import project as proj
 from .engines import blender, godot, unity, unreal, web
 from .export import web_export
@@ -36,7 +37,7 @@ def status() -> dict:
     out["web"] = {"path": "built in"}
     from .audio import voice
     from .three import ai3d
-    out["providers"] = {**ai3d.available(), "elevenlabs": bool(os.environ.get("ELEVENLABS_API_KEY")),
+    out["providers"] = {**ai3d.available(), "elevenlabs": bool(get_secret("ELEVENLABS_API_KEY")),
                         "edge_tts": voice.edge_available()}
     return out
 
@@ -153,7 +154,14 @@ def forge_export(args: dict) -> str:
     cfg_file = p / "web" / "game.json"
     if cfg_file.exists():
         title = json.loads(cfg_file.read_text()).get("title", title)
-    web_dir = Path(os.path.expanduser(args["source"])) if args.get("source") else p / "web"
+    if args.get("source"):
+        web_dir = Path(os.path.expanduser(args["source"])).resolve()
+        root = p.resolve()
+        if web_dir != root and root not in web_dir.parents:
+            return fail(f"source {web_dir} is outside the project directory {root}; "
+                        "export only what this project built")
+    else:
+        web_dir = p / "web"
     dist = proj.asset_dir(p, "export")
     icon = next((p / f for f in (proj.find(p, "sprite", "player") or {}).get("files", []) if f.endswith("player.png")), None)
     name = web_export.slug(title)

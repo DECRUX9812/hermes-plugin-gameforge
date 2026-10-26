@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 
 from .gameforge import runtime, schemas
+from .gameforge.policy import pre_tool_call
 from .gameforge.tools_assets import forge_model3d, forge_music, forge_sfx, forge_sprite, forge_tileset, forge_voice
 from .gameforge.tools_engine import forge_engine, forge_export, forge_playtest, status
 
@@ -35,6 +36,7 @@ def register(ctx) -> None:
                          args_hint="[project dir]")
     ctx.register_cli_command("gameforge", "Hermes GameForge: game dev toolkit", _cli_setup, _cli_run,
                              description="Inspect the toolchain or build the end-to-end demo game.")
+    ctx.register_hook("pre_tool_call", pre_tool_call)
 
 
 def _slash(raw: str) -> str:

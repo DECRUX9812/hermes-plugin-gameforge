@@ -56,7 +56,7 @@ def forge_sfx(args: dict) -> str:
 
 
 def _sfx_elevenlabs(p: Path, out_dir: Path, name: str, args: dict, count: int) -> str:
-    key = os.environ.get("ELEVENLABS_API_KEY")
+    key = get_secret("ELEVENLABS_API_KEY")
     if not key:
         return fail("engine 'elevenlabs' needs ELEVENLABS_API_KEY (set it in the GameForge plugin settings); "
                     "engine 'synth' works offline")
@@ -372,7 +372,12 @@ def forge_model3d(args: dict) -> str:
             env = ai3d.TRIPO_ENV_KEYS[source]
             return fail(f"source '{source}' needs {env} (GameForge plugin settings); source 'procedural' works offline")
         animate = args.get("animate") or []
-        meta = ai3d.generate(source, args.get("prompt"), args.get("image"), glb, args.get("model"),
+        image = args.get("image")
+        try:
+            image = ai3d.validated_image_ref(image, p) if image else image
+        except Exception as exc:
+            return fail(str(exc))
+        meta = ai3d.generate(source, args.get("prompt"), image, glb, args.get("model"),
                              args.get("params"), int(args.get("timeout", 600)),
                              rig=bool(args.get("rig")) or bool(animate), animations=animate)
         scene = render.load_glb(glb)  # textures stay in the .glb; previews use base colours
