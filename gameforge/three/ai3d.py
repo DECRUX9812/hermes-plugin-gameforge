@@ -186,14 +186,26 @@ def _tripo_headers() -> dict:
     return {"Authorization": f"Bearer {key}"}
 
 
-def _tripo_upload(path: str | Path) -> str:
-    """POST /files (multipart) → file_token, so image-to-3D can take a local file."""
-    p = Path(path)
+def _tripo_upload(image: str | Path) -> str:
+    """POST /files (multipart) → file_token, for a local file or a data: URI."""
+    if isinstance(image, str) and image.startswith("data:"):
+        header, _, b64 = image.partition(",")
+        mime = header[5:].split(";")[0] or "image/png"
+        if not mime.startswith("image/"):
+            raise ProviderError(f"data URI must be an image, got {mime!r}")
+        name = f"image{mimetypes.guess_extension(mime) or '.png'}"
+        try:
+            blob = base64.b64decode(b64, validate=True)
+        except ValueError as exc:
+            raise ProviderError("malformed data: URI (expected base64)") from exc
+    else:
+        p = Path(image)
+        name, blob = p.name, p.read_bytes()
+        mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
     boundary = f"----gameforge{uuid.uuid4().hex}"
-    mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
-    head = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{p.name}\"\r\n"
+    head = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\n"
             f"Content-Type: {mime}\r\n\r\n").encode()
-    body = head + p.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
+    body = head + blob + f"\r\n--{boundary}--\r\n".encode()
     req = urllib.request.Request(f"{TRIPO_BASE}/files", data=body, method="POST",
                                  headers={**_tripo_headers(), "Content-Type": f"multipart/form-data; boundary={boundary}"})
     try:

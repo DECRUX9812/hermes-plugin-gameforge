@@ -18,7 +18,7 @@ def test_get_secret_prefers_secret_scope(monkeypatch):
 
     monkeypatch.setenv("FAL_KEY", "from-env")
     monkeypatch.setitem(__import__("sys").modules, "agent.secret_scope",
-                        type("m", (), {"get_secret": staticmethod(lambda name: "from-profile")}))
+                        type("m", (), {"get_secret": staticmethod(lambda name, default=None: "from-profile")}))
     assert secrets_mod.get_secret("FAL_KEY") == "from-profile"
 
 
@@ -27,6 +27,30 @@ def test_get_secret_falls_back_to_env(monkeypatch):
 
     monkeypatch.setenv("GAMEFORGE_TEST_KEY", "from-env")
     assert secrets_mod.get_secret("GAMEFORGE_TEST_KEY") == "from-env"
+
+
+def test_get_secret_env_not_used_on_scoped_miss(monkeypatch):
+    """A scoped miss must not leak the launch profile's env key (catalog review #142443)."""
+    from gameforge import secrets as secrets_mod
+
+    monkeypatch.setenv("FAL_KEY", "from-env")
+    monkeypatch.setitem(__import__("sys").modules, "agent.secret_scope",
+                        type("m", (), {"get_secret": staticmethod(lambda name, default=None: default)}))
+    assert secrets_mod.get_secret("FAL_KEY") is None
+
+
+def test_get_secret_scope_errors_propagate(monkeypatch):
+    """UnscopedSecretError (and any scoped-lookup error) is fail-closed: no env fallback."""
+    from gameforge import secrets as secrets_mod
+
+    def _raise(name, default=None):
+        raise RuntimeError("no scope bound")
+
+    monkeypatch.setenv("FAL_KEY", "from-env")
+    monkeypatch.setitem(__import__("sys").modules, "agent.secret_scope",
+                        type("m", (), {"get_secret": staticmethod(_raise)}))
+    with pytest.raises(RuntimeError, match="no scope bound"):
+        secrets_mod.get_secret("FAL_KEY")
 
 
 # --- 2/3. approval gate for blender -P and itch publish -----------------------------------
